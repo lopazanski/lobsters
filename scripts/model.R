@@ -13,13 +13,13 @@ options(warn=-1)
 
 NUM.reps <- 1 # The number of replicate simulations to run
 ## 150 years total
-NUM.gens.pre.fishing <- 15 # The number of generations before any fishery
-NUM.gens.pre.reserve <- 15 # The number of generations of fishing before reserves are installed
-NUM.gens.post.reserve <- 20 # The number of generations with the reserve installed
+NUM.gens.pre.fishing <- 5 # The number of generations before any fishery
+NUM.gens.pre.reserve <- 10 # The number of generations of fishing before reserves are installed
+NUM.gens.post.reserve <- 15 # The number of generations with the reserve installed
 years = NUM.gens.pre.fishing+NUM.gens.pre.reserve+NUM.gens.post.reserve
 
-NS.patches <- 10 # the number of patches on the north-south axis
-EW.patches <- 10 # the number of patches on the east-west axis
+NS.patches <- 5 # the number of patches on the north-south axis
+EW.patches <- 5 # the number of patches on the east-west axis
 patch.size <- 100 # the width and height of each grid cell in nautical miles (COULD BE METERS?)
 ## View the "world" coordinates:
 view.world <- array(seq(1,NS.patches*EW.patches),c(NS.patches,EW.patches))
@@ -27,12 +27,12 @@ view.world
 
 sb <- 0.37 # survival proportion for babies
 s <- 0.37 # survival proportion
-dd <- 0.0005 # density dependence of baby survival 
-fecundity <- 1572 # The number of babies produced, on average, by each adult female each year.
-maturity.age <- 2.2 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
+dd <- 0.5 # density dependence of baby survival 
+fecundity <- 15 # The number of babies produced, on average, by each adult female each year.
+maturity.age <- 5 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
 fished <- 0.5
 buffer.fished <- 0 #buffer fishing pressure (lower than total = buffer zone, higher than total = fishing the line)
-reserves.at <- c(44,54,45,55) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
+reserves.at <- c(13) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
 buffer.at <- c()
 mover.distance <- 100 # Individuals with AA genotype move this distance on average every year
 
@@ -159,7 +159,7 @@ fishing <- function(pop,gen) {
     }
     mean.per.patch.pop <- mean(each.patch.pop)
     ff <- mean.per.patch.pop*(1/fished-1)
-    patch.pop <- rowSums(pop[,,c(2,3),,], dims = 2)
+    patch.pop <- rowSums(pop[,,c(2,3),], dims = 2)
     f <- patch.pop/(ff+patch.pop)
     for(i in 2:NUM.age.classes) {
       for(j in 1:NUM.sexes) {
@@ -180,7 +180,7 @@ fishing <- function(pop,gen) {
     each.patch.pop = ifelse(reserve.patches == 1 | buffer.patches == 1, NaN, each.patch.pop)
     mean.per.patch.pop <- mean(each.patch.pop,na.rm=TRUE)
     ff <- mean.per.patch.pop*(1/fished.adj-1)
-    patch.pop <- rowSums(pop[,,c(2,3),,], dims=2)
+    patch.pop <- rowSums(pop[,,c(2,3),], dims=2)
     patch.pop = ifelse(reserve.patches == 1 | buffer.patches == 1, NaN, patch.pop)
     f <- patch.pop/(ff+patch.pop)
     if(buffer.fished != 0) {
@@ -313,14 +313,17 @@ for(rep in 1:reps) {
   for(t in 1:gens) {
     output.array[,,,,t,rep] <- pop
     pop <- spawn(pop)
+    print("spawn")
     pop <- recruit(pop)
+    print("recruit")
     if(t > pre.fishing.gens) {
       gen <- t
       pop <- fishing(pop,gen)
+      print("fish")
     }
     pop <- move(pop)
+    print("move")
     print(t)
-    # print(rowSums(pop[,,3,1,], dims = 2))
   }
   gc() #clear memory
 }
@@ -365,12 +368,7 @@ output_df = output_df %>%
     lon == "V2" ~ 2,
     lon == "V3" ~ 3,
     lon == "V4" ~ 4,
-    lon == "V5" ~ 5,
-    lon == "V6" ~ 6,
-    lon == "V7" ~ 7,
-    lon == "V8" ~ 8,
-    lon == "V9" ~ 9,
-    lon == "V10" ~ 10
+    lon == "V5" ~ 5
   )) %>%
   mutate(sex = case_when(
     sex == 1 ~ "female",
