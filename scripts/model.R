@@ -6,20 +6,21 @@ library(beepr)
 
 addTaskCallback(function(...) {set.seed(42);TRUE})
 options(warn=-1)
+options(dplyr.summarise.inform = FALSE)
 
 # Mee Simulation ----------------------------------------------------------
 
 ## Parameters:
 
 NUM.reps <- 1 # The number of replicate simulations to run
-## 150 years total
-NUM.gens.pre.fishing <- 5 # The number of generations before any fishery
-NUM.gens.pre.reserve <- 10 # The number of generations of fishing before reserves are installed
+## XX years total
+NUM.gens.pre.fishing <- 15 # The number of generations before any fishery
+NUM.gens.pre.reserve <- 0 # The number of generations of fishing before reserves are installed
 NUM.gens.post.reserve <- 15 # The number of generations with the reserve installed
 years = NUM.gens.pre.fishing+NUM.gens.pre.reserve+NUM.gens.post.reserve
 
-NS.patches <- 5 # the number of patches on the north-south axis
-EW.patches <- 5 # the number of patches on the east-west axis
+NS.patches <- 10 # the number of patches on the north-south axis
+EW.patches <- 10 # the number of patches on the east-west axis
 patch.size <- 100 # the width and height of each grid cell in nautical miles (COULD BE METERS?)
 ## View the "world" coordinates:
 view.world <- array(seq(1,NS.patches*EW.patches),c(NS.patches,EW.patches))
@@ -28,13 +29,16 @@ view.world
 sb <- 0.37 # survival proportion for babies
 s <- 0.37 # survival proportion
 dd <- 0.5 # density dependence of baby survival 
-fecundity <- 15 # The number of babies produced, on average, by each adult female each year.
-maturity.age <- 5 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
+fecundity <- 2000 # The number of babies produced, on average, by each adult female each year.
+maturity.age <- 4 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
 fished <- 0.5
 buffer.fished <- 0 #buffer fishing pressure (lower than total = buffer zone, higher than total = fishing the line)
-reserves.at <- c(13) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
+reserves.at <- c(33,43,53,63,
+                 34,44,54,64,
+                 35,45,55,65,
+                 36,46,56,66) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
 buffer.at <- c()
-mover.distance <- 100 # Individuals with AA genotype move this distance on average every year
+mover.distance <- 300 # Individuals with AA genotype move this distance on average every year
 
 ############################################################################
 ## Create the world
@@ -48,7 +52,7 @@ world <- array(0, c(NS.patches, EW.patches, NUM.age.classes, NUM.sexes))
 ## This populates the world.
 
 init <- function() {
-  init <- 10
+  init <- 100
   pop <- world
   pop[,,,] <- init
   return(pop)
@@ -102,10 +106,8 @@ spawn <- function(pop) {
   
   # All females produce the same mean number of eggs
   NUM.eggs <- Reshape(rpois(NS.patches * EW.patches,fec*pop[,,3,1]), NS.patches, EW.patches)
-  # Males produce sperm in proportion to their genotypes 
-  freq.sperm <- 1
   # Sperm fertilize eggs in proportion to sperm genotype frequencies
-  babies <- rbinom(NS.patches * EW.patches,NUM.eggs,freq.sperm)
+  babies <- rbinom(NS.patches * EW.patches,NUM.eggs,1)
   # Divide zygotes 50:50 among the sexes
   babies.f <- rbinom(NS.patches * EW.patches,babies,0.5)
   babies.m <- babies - babies.f
@@ -189,6 +191,7 @@ fishing <- function(pop,gen) {
     for(i in 2:NUM.age.classes) {
       for(j in 1:NUM.sexes) {
         fished.array = Reshape(rbinom(NS.patches * EW.patches,pop[,,i,j],(1-f)), NS.patches, EW.patches)
+        fished.array[is.na(fished.array)] = 0
         pop[,,i,j] <- ifelse(is.na(fished.array[,]),pop[,,i,j],fished.array[,])
       }
     }
@@ -201,7 +204,7 @@ fishing <- function(pop,gen) {
 
 move <- function(pop) {
   
-  movers <- mover.distance # Individuals with AA genotype move this distance on average, in nautical miles
+  movers <- mover.distance # Individuals with move this distance on average, in nautical miles
 
   move.array <- world
   
@@ -218,9 +221,9 @@ move <- function(pop) {
             # determine the direction of each move
             theta <- runif(pop[lat,lon,i,j],0,2*pi)
             # bias this movement in the north-south direction (along coasts) if this is a great white shark simulation (otherwise, comment out the next three lines):
-            f.adj <- function(x, u) x-cos(x)*sin(x) - u
-            my.uniroot <- function(x) uniroot(f.adj, c(0, 2*pi), tol = 0.0001, u = x)$root
-            theta <- vapply(theta, my.uniroot, numeric(1))
+            # f.adj <- function(x, u) x-cos(x)*sin(x) - u
+            # my.uniroot <- function(x) uniroot(f.adj, c(0, 2*pi), tol = 0.0001, u = x)$root
+            # theta <- vapply(theta, my.uniroot, numeric(1))
             # convert direction and distance into a distance in the x-direction (longitude)
             x <- cos(theta)*dist
             # bounce off edges (assume fish start in centre of cell)
@@ -266,22 +269,24 @@ move <- function(pop) {
               }
             }
             # convert movement distances into numbers of grid cells (assume fish start in centre of cell):
-            xy <- as.data.frame(cbind(x,y))
-            hx <- hist(xy$x, breaks = seq(round(min(x),-2)-patch.size/2,round(max(x),-2)+patch.size/2,patch.size), plot = FALSE)
-            xbreaks <- hx$breaks
-            xmids <- hx$mids
-            hy <- hist(xy$y, breaks = seq(round(min(y),-2)-patch.size/2,round(max(y),-2)+patch.size/2,patch.size), plot = FALSE)
-            ybreaks <- hy$breaks
-            ymids <- hy$mids
-            freq <-  as.data.frame(table(cut(xy[,2], ybreaks,labels=ymids),cut(xy[,1], xbreaks,labels=xmids)))
-            freq2D <- as.data.frame(array(0,c(length(ymids),length(xmids))))
-            names(freq2D) <- xmids/patch.size
-            row.names(freq2D) <- ymids/patch.size
-            freq2D[cbind(freq[,1], freq[,2])] <- freq[,3]
+            x.round = round(x/patch.size)
+            y.round = round(y/patch.size)
+            xy = as.data.frame(cbind(x.round,y.round))
+            xy_sum = xy %>% 
+              group_by(x.round, y.round) %>% 
+              summarise(sum = n())
+            xy_pivot = xy_sum %>% 
+              ungroup() %>% 
+              pivot_wider(values_from = sum, names_from = x.round)
+            final_xy = xy_pivot %>% 
+              select(-y.round)
+            final_xy[is.na(final_xy)] <- 0
+            rownames(final_xy) = unique(xy_sum$y.round)
+            final_xy = as.data.frame(final_xy)
             # populate the move.array with movers (and stayers)
-            for(xx in 1:length(xmids)) {
-              for(yy in 1:length(ymids)) {
-                move.array[lat+as.numeric(row.names(freq2D)[yy]),lon+as.numeric(names(freq2D)[xx]),i,j] <- move.array[lat+as.numeric(row.names(freq2D)[yy]),lon+as.numeric(names(freq2D)[xx]),i,j] + freq2D[yy,xx]
+            for(xx in 1:length(unique(xy_sum$x.round))) {
+              for(yy in 1:length(unique(xy_sum$y.round))) {
+                move.array[lat+as.numeric(row.names(final_xy)[yy]),lon+as.numeric(names(final_xy)[xx]),i,j] <- move.array[lat+as.numeric(row.names(final_xy)[yy]),lon+as.numeric(names(final_xy)[xx]),i,j] + final_xy[yy,xx]
               }
             }
           }
@@ -313,16 +318,12 @@ for(rep in 1:reps) {
   for(t in 1:gens) {
     output.array[,,,,t,rep] <- pop
     pop <- spawn(pop)
-    print("spawn")
     pop <- recruit(pop)
-    print("recruit")
     if(t > pre.fishing.gens) {
       gen <- t
       pop <- fishing(pop,gen)
-      print("fish")
     }
     pop <- move(pop)
-    print("move")
     print(t)
   }
   gc() #clear memory
@@ -344,7 +345,7 @@ for(a in 1:reps) {
   for(b in 1:gens) {
     for(d in 1:NUM.sexes) {
       for(e in 1:NUM.age.classes) {
-        world_sub = output.array[,,e,d,c,b,a] %>% 
+        world_sub = output.array[,,e,d,b,a] %>% 
           as.data.frame()
         world_sub$rep = paste0(a)
         world_sub$generation = paste0(b)
@@ -368,7 +369,12 @@ output_df = output_df %>%
     lon == "V2" ~ 2,
     lon == "V3" ~ 3,
     lon == "V4" ~ 4,
-    lon == "V5" ~ 5
+    lon == "V5" ~ 5,
+    lon == "V6" ~ 6,
+    lon == "V7" ~ 7,
+    lon == "V8" ~ 8,
+    lon == "V9" ~ 9,
+    lon == "V10" ~ 10
   )) %>%
   mutate(sex = case_when(
     sex == 1 ~ "female",
@@ -386,43 +392,26 @@ output_df = output_df %>%
 
 
 #Summarize pop size and frequency by genotype
-geno_sum = output_df %>% 
+output_sum = output_df %>% 
   group_by(lat, lon, rep, generation) %>% 
-  summarise(geno_pop_sum = sum(pop)) 
+  summarise(pop_sum = sum(pop)) 
 
-pop_sum = output_df %>% 
-  group_by(lat, lon, rep, generation) %>% 
-  summarise(pop_sum = sum(pop))
-
-
-output_sum = full_join(geno_sum, pop_sum) %>%
-  mutate(freq = geno_pop_sum/pop_sum)
-
-write_csv(output_sum, here("output", ".csv"))
+#write_csv(output_sum, here("output", ".csv"))
 
 # output_sum = read_csv(here("output", "3x3NoClimate8F.csv"))
 
 plot_sum = output_sum %>% 
-  filter(generation %in% c(50, 75, 100)) %>% 
+  filter(generation %in% c(5,10,15,20, 25, 30)) %>% 
   mutate(generation = as.numeric(generation))
 
-p1 = ggplot(plot_sum, aes(lon, lat, fill = freq)) +
+plot = ggplot(plot_sum, aes(lon, lat, fill = pop_sum)) +
   geom_tile() + 
-  facet_grid(genotype~generation) + 
-  labs(x = "Longitude", y = "Latitude", fill = "Genotype Frequency", color = "Genotype Frequency") +
-  theme_bw() +
-  scale_fill_gradient2(low = "gainsboro", high = "midnightblue", mid = "skyblue3", midpoint = 0.4)
-
-p2 = ggplot(plot_sum, aes(lon, lat, fill = geno_pop_sum)) +
-  geom_tile() + 
-  facet_grid(genotype~generation) + 
+  facet_grid(~generation) + 
   labs(x = "Longitude", y = "Latitude", fill = "Population Size", color = "Population Size") +
   theme_bw() +
-  scale_fill_gradient2(low = "gainsboro", high = "midnightblue", mid = "skyblue3", midpoint = 300)
+  scale_fill_gradient2(low = "gainsboro", high = "midnightblue", mid = "skyblue3", midpoint = 2)
 
-p2 / p1
+plot
 
-plot = p2 / p1
-
-ggsave(plot, file=paste0(".pdf"), path = here("figs"), height = 11, width = 8)
+#ggsave(plot, file=paste0(".pdf"), path = here("figs"), height = 11, width = 8)
 
