@@ -33,10 +33,11 @@ fecundity <- 2000 # The number of babies produced, on average, by each adult fem
 maturity.age <- 4 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
 fished <- 0.5
 buffer.fished <- 0 #buffer fishing pressure (lower than total = buffer zone, higher than total = fishing the line)
-reserves.at <- c(33,43,53,63,
-                 34,44,54,64,
-                 35,45,55,65,
-                 36,46,56,66) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
+reserves.at <- c(33,43,53,63,23,
+                 34,44,54,64,24,
+                 35,45,55,65,25,
+                 36,46,56,66,26,
+                 37,47,57,67,27) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
 buffer.at <- c()
 mover.distance <- 200 # Individuals move this distance on average every year
 
@@ -317,7 +318,7 @@ for(rep in 1:reps) {
     output.array[,,,,t,rep] <- pop
     pop <- spawn(pop)
     pop <- recruit(pop)
-    if(t > pre.reserve.gens + pre.fishing.gens) {
+    if(t > pre.reserve.gens + pre.fishing.gens | t < pre.reserve.gens) {
       gen <- t
       pop <- fishing(pop,gen)
     }
