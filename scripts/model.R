@@ -26,8 +26,8 @@ patch.size <- 100 # the width and height of each grid cell in nautical miles (CO
 view.world <- array(seq(1,NS.patches*EW.patches),c(NS.patches,EW.patches))
 view.world
 
-sb <- 0.37 # survival proportion for babies
-s <- 0.37 # survival proportion
+sb <- 0.08 # survival proportion for babies
+s <- 0.08 # survival proportion
 dd <- 0.005 # density dependence of baby survival 
 fecundity <- 2000 # The number of babies produced, on average, by each adult female each year.
 maturity.age <- 4 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
@@ -322,8 +322,8 @@ for(rep in 1:reps) {
       pop <- fishing(pop,gen)
     }
     pop <- move(pop)
-    print(t)
     print(pop)
+    print(t)
   }
   gc() #clear memory
 }
