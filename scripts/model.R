@@ -400,7 +400,7 @@ output_sum = output_df %>%
 # output_sum = read_csv(here("output", "3x3NoClimate8F.csv"))
 
 plot_sum = output_sum %>% 
-  filter(generation %in% c(5,10,15,20)) %>% 
+  filter(generation %in% c(12,14,16,18,20,22,24)) %>% 
   mutate(generation = as.numeric(generation))
 
 plot = ggplot(plot_sum, aes(lon, lat, fill = pop_sum)) +
