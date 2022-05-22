@@ -14,7 +14,7 @@ options(dplyr.summarise.inform = FALSE)
 
 NUM.reps <- 1 # The number of replicate simulations to run
 ## XX years total
-NUM.gens.pre.fishing <- 15 # The number of generations before any fishery
+NUM.gens.pre.fishing <- 5 # The number of generations before any fishery
 NUM.gens.pre.reserve <- 0 # The number of generations of fishing before reserves are installed
 NUM.gens.post.reserve <- 15 # The number of generations with the reserve installed
 years = NUM.gens.pre.fishing+NUM.gens.pre.reserve+NUM.gens.post.reserve
@@ -28,7 +28,7 @@ view.world
 
 sb <- 0.37 # survival proportion for babies
 s <- 0.37 # survival proportion
-dd <- 0.5 # density dependence of baby survival 
+dd <- 0.005 # density dependence of baby survival 
 fecundity <- 2000 # The number of babies produced, on average, by each adult female each year.
 maturity.age <- 4 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
 fished <- 0.5
@@ -52,7 +52,7 @@ world <- array(0, c(NS.patches, EW.patches, NUM.age.classes, NUM.sexes))
 ## This populates the world.
 
 init <- function() {
-  init <- 100
+  init <- 10
   pop <- world
   pop[,,,] <- init
   return(pop)
@@ -106,11 +106,9 @@ spawn <- function(pop) {
   
   # All females produce the same mean number of eggs
   NUM.eggs <- Reshape(rpois(NS.patches * EW.patches,fec*pop[,,3,1]), NS.patches, EW.patches)
-  # Sperm fertilize eggs in proportion to sperm genotype frequencies
-  babies <- rbinom(NS.patches * EW.patches,NUM.eggs,1)
   # Divide zygotes 50:50 among the sexes
-  babies.f <- rbinom(NS.patches * EW.patches,babies,0.5)
-  babies.m <- babies - babies.f
+  babies.f <- rbinom(NS.patches * EW.patches,NUM.eggs,0.5)
+  babies.m <- NUM.eggs - babies.f
   # Female babies
   pop[,,1,1] <- pop[,,1,1] + Reshape(babies.f, NS.patches, EW.patches)
   # Male babies
@@ -325,6 +323,7 @@ for(rep in 1:reps) {
     }
     pop <- move(pop)
     print(t)
+    print(pop)
   }
   gc() #clear memory
 }
@@ -401,7 +400,7 @@ output_sum = output_df %>%
 # output_sum = read_csv(here("output", "3x3NoClimate8F.csv"))
 
 plot_sum = output_sum %>% 
-  filter(generation %in% c(5,10,15,20, 25, 30)) %>% 
+  filter(generation %in% c(5,10,15,20)) %>% 
   mutate(generation = as.numeric(generation))
 
 plot = ggplot(plot_sum, aes(lon, lat, fill = pop_sum)) +
