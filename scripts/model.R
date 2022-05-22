@@ -14,10 +14,10 @@ options(dplyr.summarise.inform = FALSE)
 
 NUM.reps <- 1 # The number of replicate simulations to run
 ## XX years total
-NUM.gens.pre.fishing <- 5 # The number of generations before any fishery
-NUM.gens.pre.reserve <- 0 # The number of generations of fishing before reserves are installed
-NUM.gens.post.reserve <- 15 # The number of generations with the reserve installed
-years = NUM.gens.pre.fishing+NUM.gens.pre.reserve+NUM.gens.post.reserve
+NUM.gens.pre.reserve <- 12 # The number of generations before any fishery
+NUM.gens.pre.fishing <- 6 # The number of generations of fishing before reserves are installed
+NUM.gens.post.fishing <- 6 # The number of generations with the reserve installed
+years = NUM.gens.pre.reserve+NUM.gens.pre.fishing+NUM.gens.post.fishing
 
 NS.patches <- 10 # the number of patches on the north-south axis
 EW.patches <- 10 # the number of patches on the east-west axis
@@ -26,9 +26,9 @@ patch.size <- 100 # the width and height of each grid cell in nautical miles (CO
 view.world <- array(seq(1,NS.patches*EW.patches),c(NS.patches,EW.patches))
 view.world
 
-sb <- 0.08 # survival proportion for babies
-s <- 0.08 # survival proportion
-dd <- 0.005 # density dependence of baby survival 
+sb <- 0.37 # survival proportion for babies
+s <- 0.37 # survival proportion
+dd <- 0.0005 # density dependence of baby survival 
 fecundity <- 2000 # The number of babies produced, on average, by each adult female each year.
 maturity.age <- 4 # The average age at which individuals mature (i.e., the age at which 50% of individuals are mature)
 fished <- 0.5
@@ -38,7 +38,7 @@ reserves.at <- c(33,43,53,63,
                  35,45,55,65,
                  36,46,56,66) # This determines which patches are marine reserves. Should be a list: e.g., for one reserve, c(369,370,371,372,389,390,391,392,409,410,411,412,429,430,431,432)
 buffer.at <- c()
-mover.distance <- 300 # Individuals with AA genotype move this distance on average every year
+mover.distance <- 200 # Individuals move this distance on average every year
 
 ############################################################################
 ## Create the world
@@ -52,7 +52,7 @@ world <- array(0, c(NS.patches, EW.patches, NUM.age.classes, NUM.sexes))
 ## This populates the world.
 
 init <- function() {
-  init <- 10
+  init <- 100
   pop <- world
   pop[,,,] <- init
   return(pop)
@@ -301,10 +301,10 @@ move <- function(pop) {
 
 reps <- NUM.reps
 
-pre.fishing.gens <- NUM.gens.pre.fishing
 pre.reserve.gens <- NUM.gens.pre.reserve
-post.reserve.gens <- NUM.gens.post.reserve
-gens <- pre.fishing.gens+pre.reserve.gens+post.reserve.gens
+pre.fishing.gens <- NUM.gens.pre.fishing
+post.fishing.gens <- NUM.gens.post.fishing
+gens <- pre.reserve.gens+pre.fishing.gens+post.fishing.gens
 
 output.array <- array(0 ,c(NS.patches, EW.patches, NUM.age.classes, NUM.sexes, gens, reps))
 
@@ -317,7 +317,7 @@ for(rep in 1:reps) {
     output.array[,,,,t,rep] <- pop
     pop <- spawn(pop)
     pop <- recruit(pop)
-    if(t > pre.fishing.gens) {
+    if(t > pre.reserve.gens + pre.fishing.gens) {
       gen <- t
       pop <- fishing(pop,gen)
     }
