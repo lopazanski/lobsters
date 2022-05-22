@@ -281,8 +281,8 @@ move <- function(pop) {
             final_xy = xy_pivot %>% 
               select(-y.round)
             final_xy[is.na(final_xy)] <- 0
-            rownames(final_xy) = unique(xy_sum$y.round)
             final_xy = as.data.frame(final_xy)
+            rownames(final_xy) = sort(unique(xy_sum$y.round))
             # populate the move.array with movers (and stayers)
             for(xx in 1:length(unique(xy_sum$x.round))) {
               for(yy in 1:length(unique(xy_sum$y.round))) {
