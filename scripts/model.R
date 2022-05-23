@@ -435,6 +435,20 @@ plot
 
 #ggsave(plot, file=paste0(".pdf"), path = here("figs"), height = 11, width = 8)
 
+adult_plot = output_df %>% 
+  filter(lat == 5) %>% 
+  filter(generation %in% c(2,4,6,8,10,12,14,16,18)) %>% 
+  mutate(generation = as.numeric(generation)) %>% 
+  group_by(generation, lon) %>% 
+  summarize(count = sum(pop))
+
+ggplot(adult_plot, aes(lon, count)) +
+  geom_vline(aes(xintercept = 3), color = "red") +
+  geom_vline(aes(xintercept = 7), color = "red") +
+  geom_line() +
+  facet_wrap(~generation) +
+  theme_bw()
+
 adult.males = as.data.frame(t(pop[,,3,2])) %>% 
   mutate(lon = as.numeric(row.names(adult.males)))
 
